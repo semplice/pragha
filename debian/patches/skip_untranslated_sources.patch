@@ -1,0 +1,9 @@
+Index: pragha-1.3.1+git20141011/po/POTFILES.skip
+===================================================================
+--- pragha-1.3.1+git20141011.orig/po/POTFILES.skip
++++ pragha-1.3.1+git20141011/po/POTFILES.skip
+@@ -9,3 +9,4 @@ plugins/tunein/pragha-tunein-plugin.c
+ plugins/dlna/pragha-dlna-plugin.c
+ plugins/dlna-renderer/pragha-dlna-renderer-plugin.c
+ plugins/acoustid/pragha-acoustid-plugin.c
++plugins/removable-media/pragha-devices-removable.c
