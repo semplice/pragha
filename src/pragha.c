@@ -20,6 +20,8 @@
 #include <config.h>
 #endif
 
+#include "pragha.h"
+
 #if defined(GETTEXT_PACKAGE)
 #include <glib/gi18n-lib.h>
 #else
@@ -41,8 +43,6 @@
 #include "pragha-menubar.h"
 #include "pragha-file-utils.h"
 #include "pragha-utils.h"
-#include "pragha.h"
-
 #include "pragha-music-enum.h"
 
 #ifdef G_OS_WIN32
@@ -217,6 +217,13 @@ pragha_art_cache_changed_handler (PraghaArtCache *cache, PraghaApplication *prag
 			g_free (album_art_path);
 		}
 	}
+}
+
+static void
+pragha_libary_list_changed_cb (PraghaPreferences *preferences, PraghaApplication *pragha)
+{
+	GtkWidget *infobar = create_info_bar_update_music (pragha);
+	pragha_window_add_widget_to_infobox (pragha, infobar);
 }
 
 static void
@@ -592,12 +599,15 @@ pragha_application_startup (GApplication *application)
 	                        toolbar, "timer-remaining-mode",
 	                        binding_flags);
 
+	g_signal_connect (pragha->preferences, "LibraryChanged",
+	                  G_CALLBACK (pragha_libary_list_changed_cb), pragha);
+
 	pragha->sidebar2_binding =
 		g_object_bind_property (pragha->preferences, "secondary-lateral-panel",
 		                        pragha->sidebar2, "visible",
 		                        binding_flags);
-	
-	pragha->setting_dialog = pragha_preferences_dialog_new (pragha);
+
+	pragha->setting_dialog = pragha_preferences_dialog_new (pragha->mainwindow);
 
 	#ifdef HAVE_LIBPEAS
 	pragha_plugins_engine_startup (pragha->plugins_engine);
