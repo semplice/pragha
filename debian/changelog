@@ -1,3 +1,17 @@
+pragha (1.3.1+git20141121-1) unstable; urgency=medium
+
+  [ Eugenio Paolantonio (g7) ]
+  * debian/patches: added skip_untranslated_sources.patch
+
+  [ Matias De lellis ]
+  * Trying to follow GLib/GTK+ best practices for the order of includes
+  * Equalizer dialog not need PraghaApplication.
+  * The filter dialog either need PraghaApplication.
+  * Remove useless option to setting gstreamer version.
+  * PraghaPreferencesDialog not depend on PraghaApplication.
+
+ -- Eugenio Paolantonio (g7) <me@medesimo.eu>  Sun, 23 Nov 2014 18:35:03 +0100
+
 pragha (1.3.1+git20141011-1) unstable; urgency=low
 
   * Initial release
