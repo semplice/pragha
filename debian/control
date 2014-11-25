@@ -13,7 +13,8 @@ Build-Depends: debhelper (>= 9),
  libnotify-dev (>= 0.4.4),
  libkeybinder-3.0-dev,
  xfce4-dev-tools,
- build-essential
+ build-essential,
+ autoconf
 Standards-Version: 3.9.5
 Homepage: http://pragha.wikispaces.com/
 Vcs-Git: git@github.com:semplice/pragha.git
