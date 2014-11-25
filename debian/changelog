@@ -1,3 +1,9 @@
+pragha (1.3.1+git20141121-5) unstable; urgency=medium
+
+  * debian/control: build-depend on intltool.
+
+ -- Eugenio Paolantonio (g7) <me@medesimo.eu>  Tue, 25 Nov 2014 16:33:05 +0100
+
 pragha (1.3.1+git20141121-4) unstable; urgency=medium
 
   * debian/control: build-depend on autoconf.
