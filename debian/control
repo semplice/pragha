@@ -15,7 +15,8 @@ Build-Depends: debhelper (>= 9),
  xfce4-dev-tools,
  build-essential,
  autoconf,
- intltool
+ intltool,
+ libtool
 Standards-Version: 3.9.5
 Homepage: http://pragha.wikispaces.com/
 Vcs-Git: git@github.com:semplice/pragha.git
