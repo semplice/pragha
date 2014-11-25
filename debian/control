@@ -14,7 +14,8 @@ Build-Depends: debhelper (>= 9),
  libkeybinder-3.0-dev,
  xfce4-dev-tools,
  build-essential,
- autoconf
+ autoconf,
+ intltool
 Standards-Version: 3.9.5
 Homepage: http://pragha.wikispaces.com/
 Vcs-Git: git@github.com:semplice/pragha.git
