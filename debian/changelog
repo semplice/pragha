@@ -1,3 +1,10 @@
+pragha (1.3.1+git20141121-9) unstable; urgency=medium
+
+  * debian/control: build-depend on libpeas-dev.
+  * debian/control: depend on gstreamer1.0-plugins-base.
+
+ -- Eugenio Paolantonio (g7) <me@medesimo.eu>  Wed, 26 Nov 2014 16:08:08 +0100
+
 pragha (1.3.1+git20141121-8) unstable; urgency=medium
 
   * Fixed libtagc0 build-dependency.
