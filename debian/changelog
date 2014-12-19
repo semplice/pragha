@@ -1,3 +1,11 @@
+pragha (1.3.1+git20141121-10) unstable; urgency=medium
+
+  * debian/patches/02_enable_mpris2_plugin.patch: added.
+  * debian/control: build-depend on libglyr-dev. This enables lyrics searching.
+  * debian/control: build-depend on gstreamer1.0-plugins-base to enable better control of the volume.
+
+ -- Eugenio Paolantonio (g7) <me@medesimo.eu>  Fri, 19 Dec 2014 19:23:18 +0100
+
 pragha (1.3.1+git20141121-9) unstable; urgency=medium
 
   * debian/control: build-depend on libpeas-dev.
