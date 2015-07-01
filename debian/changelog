@@ -1,3 +1,102 @@
+pragha (1.3.2.2+git20150607-1) unstable; urgency=medium
+
+  [ Matias De lellis ]
+  * Testing GtkHeaderBar .. I'll add optionally.. =)
+  * Add settings to set gnome HIG in preferences dialog.. A better description for it?.
+  * Expand song info widgets as did previously. Added a new custom widget that allow it, perhaps is exaggerated, but found a better way.
+  * Allow move window clickin on AlbumArt and song info. This propogate all botton_press events, causing problems with double click. I have to decide how to fix it better. Fix window title on Gnome3 style.
+  * Depend on Gtk >= 3.10
+  * Inhibit put controls below options on CSD,.
+  * Expand even more artist info and progress to fill all GtkHeaderBar... Also center them when using large abum-arts. Perhaps not meet gnome3 HIG .. A shame, but it will look In this way.. ;)
+  * Fix font colors when run on default style. Fix the white line that always appears in dark themes!. =)
+  * Headerbar: Require Gtk+-3 > 3.12 (Due: due to changes in the order of packing the widgets!!!!)
+  * No show album picture or the tag dialog with double click on toolbar on Gnome style. * GtkHeaderbar no response to a single GDK_2BUTTON_PRESS event, they use the new gesture support, and in short, always maximize and demaximize the window on "double-click" gesture, and can not find way to avoid it!!!
+  * Check gnome-style changed berore emit signal.
+  * Add the famous Gear menu displayed when the menubar is hidden..
+  * Inhibit fullscreen on CSD.
+  * Insensitive some playback actions on toolbar, menubar and systray when startup.
+  * Remove double binding that freezes the window when close the sidebar.
+  * Hide or show menubar according to option Gnome 3 hig. Off course still opcional.
+  * Add a infobar when some change on prefrences need restart. How can implement restart?? Now only close pragha.
+  * Restore General and Desktop settings when cancel preferences dialog.
+  * Append lastfm submenu on Gear menu.
+  * Fix placeholder of lastfm on gear menu. Worked but was wrong. :S
+  * Add acoustic plugin to gear menu. Insensitive it when playback is stoped.
+  * Add public functions missing on previous commit.
+  * Add cdrom plugin on gear menu.
+  * Add a helper to set the GtkEntry on preferences to forgeting a bit of the NULL strings.
+  * Add dlna renderer plugin to gear menu.
+  * Add tuneIn plugin to gear menu.
+  * Add mtp devices plugin to gear menu.
+  * Complete save playlist and save selection actions on gear menu.
+  * Just add a adicional separator on gear menu.
+  * Update Notify plugin to latest standards. Restore changes when cancel the dialog.
+  * Update Song info plugin to latest standards
+  * Lastfm: Be a little more careful with PraghaMusicobject references.
+  * Follow Initiatives/GnomeGoals/GearIcons but with a fallback over old icon..
+  * Add other options of icon to close the sidebar. Move close icon according to the position of panel
+  * Remove windows installer. Moves to its own repository.
+  * If first run and the desktop is gnome adapt the style.
+  * Changed SIgnal of GtkEntry/GtkEditable must be return void.
+  * Inhibit CSD when compositor is disabled. Xfce by default. :s
+  * Improve two strings, and make the plugins translatable.
+  * Fix typo thanks to Atalanttore
+  * Put only the libpeas view on setting dialog.
+  * Update library list on the dialog when import on first run.
+  * Add a library_locker poperty on PraghaPreferences,
+  * No mark as scanned the folder imported on first run.
+  * Allow tiny album art, and shrink the status bar a bit.
+  * Fixes various strings to translate. Thanks to Fitoschido.
+  * Add a plugins_is_shutdown flag.
+  * Transfix pull, *.po update
+  * Center gtkcellrendererbubble text, and fixes some default sizes.
+  * Remove song-info-plugin settings when deactivate the plugin.
+  * Follow libpeas name of target object.. So, "Cutting to the chase."
+  * Remove all lastfm settings when deactivate the plugin.
+  * Move lastfm keys definition to lastfm plugin..
+  * Put together cdrom_device and use_cddb in the same setting group.
+  * Fix second sidebar default size. A arbitrary number, but 99% correct.
+  * Show actions and album-art in notification by default. (As pragha 1.2!!)
+  * No notification actions to nofify-osd users.
+  * Change yet anothers default settings.
+  * Pragha 1.3.2
+  * Disable popover on gear menu!. It is just horrible!!. Pior on 3.14
+  * Fix icon size on preferences dialog on Gtk 3.14.
+  * Fix size of Gear menu.
+  * Use GtkScale to show progress when compile with gtk >= 3.14
+  * Insensitive progress/scale widget when pause song.
+  * Add a p as prefix to plugin libraries to prevent names conflict. See issue #74
+  * Tiny hack to allow hide sidebar when init. Issue #73
+  * Change "Show secondary lateral panel" accelerator to F10.
+  * Revert "Insensitive progress/scale widget when pause song."
+  * Revert "Use GtkScale to show progress when compile with gtk >= 3.14"
+  * Yet another attempt to fix the progress bar.
+
+  [ Guido Berhoerster ]
+  * Revert "Add a p as prefix to plugin libraries to prevent names conflict. See issue #74"
+  * Disable libtool versioning for plugins (issue #74)
+
+  [ Matias De lellis ]
+  * Center the title box on sidebar.
+  * Shrink a little the button to close the sidebar
+  * Revert "Change "Show secondary lateral panel" accelerator to F10."
+  * Pragha 1.3.2.1
+  * Ensure menu size and fallback to 16 on library and playlist icons. Force icon size on gtk 3.14!.
+  * Bump to dev version.
+  * Change a deprecated libnotify api..
+  * Fix not save state album_art_in_osd=false: Issue #77
+  * D'Oh!. Show menu button.. Hide by previous commit.
+  * Set expand comment entry on tag dialog..
+  * Provide all standards sizes of app icon. Issue #80
+  * Use icon name instead custom pixbuf
+  * Use GtkButton instead GtkToolbar.
+
+  [ Eugenio Paolantonio (g7) ]
+  * [packaging] debian/patches: remove 02_enable_mpris2_plugin.patch, integrated upstream.
+  * [packaging] debian/patches: remove skip_untranslated_sources.patch, not needed anymore.
+
+ -- Eugenio Paolantonio (g7) <me@medesimo.eu>  Wed, 01 Jul 2015 11:45:51 +0200
+
 pragha (1.3.1+git20141121-10) unstable; urgency=medium
 
   * debian/patches/02_enable_mpris2_plugin.patch: added.
