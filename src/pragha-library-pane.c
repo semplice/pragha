@@ -43,7 +43,6 @@
 #include "pragha-tags-mgmt.h"
 #include "pragha-musicobject-mgmt.h"
 #include "pragha-dnd.h"
-#include "pragha.h"
 
 #ifdef G_OS_WIN32
 #include "../win32/win32dep.h"
@@ -841,7 +840,7 @@ trash_or_unlink_row (GArray *loc_arr, gboolean unlink, PraghaLibraryPane *librar
 				file = g_file_new_for_path(filename);
 
 				if(!unlink && !(deleted = g_file_trash(file, NULL, &error))) {
-					primary = g_strdup (_("File can´t be moved to trash. Delete permanently?"));
+					primary = g_strdup (_("File can't be moved to trash. Delete permanently?"));
 					secondary = g_strdup_printf (_("The file \"%s\" cannot be moved to the trash. Details: %s"),
 									g_file_get_basename (file), error->message);
 
@@ -1400,7 +1399,7 @@ void queue_refilter (PraghaLibraryPane *clibrary)
 	clibrary->timeout_id = g_timeout_add(500, (GSourceFunc)do_refilter, clibrary);
 }
 
-static gboolean
+static void
 simple_library_search_keyrelease_handler (GtkEntry          *entry,
                                           PraghaLibraryPane *clibrary)
 {
@@ -1408,7 +1407,7 @@ simple_library_search_keyrelease_handler (GtkEntry          *entry,
 	gboolean has_text;
 	
 	if (!pragha_preferences_get_instant_search(clibrary->preferences))
-		return FALSE;
+		return;
 
 	if (clibrary->filter_entry != NULL) {
 		g_free (clibrary->filter_entry);
@@ -1426,8 +1425,6 @@ simple_library_search_keyrelease_handler (GtkEntry          *entry,
 	else {
 		clear_library_search (clibrary);
 	}
-
-	return FALSE;
 }
 
 gboolean simple_library_search_activate_handler(GtkEntry *entry,
@@ -1749,11 +1746,7 @@ library_view_complete_folder_view(GtkTreeModel *model,
 	GtkTreeIter iter, *f_iter;
 	GSList *list = NULL, *library_dir = NULL;
 
-	library_dir =
-		pragha_preferences_get_filename_list(clibrary->preferences,
-			                             GROUP_LIBRARY,
-			                             KEY_LIBRARY_DIR);
-
+	library_dir = pragha_preferences_get_library_list (clibrary->preferences);
 	for(list = library_dir ; list != NULL ; list=list->next) {
 		/*If no need to fuse folders, add headers and set p_iter */
 		if(!pragha_preferences_get_fuse_folders(clibrary->preferences)) {
@@ -2743,16 +2736,28 @@ pragha_library_pane_create_widget (PraghaLibraryPane *library)
 	                   library->library_tree);
 }
 
+static gint
+get_library_icon_size (void)
+{
+  gint width, height;
+
+  if (gtk_icon_size_lookup (GTK_ICON_SIZE_MENU, &width, &height))
+    return MAX (width, height);
+  else
+    return 16;
+}
+
 static void
 pragha_library_pane_init_pixbufs(PraghaLibraryPane *librarypane)
 {
 	gchar *pix_uri = NULL;
 	GtkIconTheme *icontheme = gtk_icon_theme_get_default();
+	gint icon_size = get_library_icon_size();
 
 	pix_uri = g_build_filename (PIXMAPDIR, "artist.png", NULL);
 	librarypane->pixbuf_artist =
 		gdk_pixbuf_new_from_file_at_scale(pix_uri,
-		                                  16, 16,
+		                                  icon_size, icon_size,
 		                                  TRUE,
 		                                  NULL);
 	if (!librarypane->pixbuf_artist)
@@ -2762,14 +2767,14 @@ pragha_library_pane_init_pixbufs(PraghaLibraryPane *librarypane)
 	librarypane->pixbuf_album =
 		gtk_icon_theme_load_icon(icontheme,
 		                         "media-optical",
-		                         16, 0,
+		                         icon_size, GTK_ICON_LOOKUP_FORCE_SIZE,
 		                         NULL);
 
 	if (!librarypane->pixbuf_album) {
 		pix_uri = g_build_filename (PIXMAPDIR, "album.png", NULL);
 		librarypane->pixbuf_album =
 			gdk_pixbuf_new_from_file_at_scale(pix_uri,
-			                                  16, 16,
+			                                  icon_size, icon_size,
 			                                  TRUE, NULL);
 		g_free (pix_uri);
 	}
@@ -2779,13 +2784,13 @@ pragha_library_pane_init_pixbufs(PraghaLibraryPane *librarypane)
 	librarypane->pixbuf_track =
 		gtk_icon_theme_load_icon(icontheme,
 		                         "audio-x-generic",
-		                         16, 0,
+		                         icon_size, GTK_ICON_LOOKUP_FORCE_SIZE,
 		                         NULL);
 	if (!librarypane->pixbuf_track) {
 		pix_uri = g_build_filename (PIXMAPDIR, "track.png", NULL);
 		librarypane->pixbuf_track =
 			gdk_pixbuf_new_from_file_at_scale(pix_uri,
-			                                  16, 16,
+			                                  icon_size, icon_size,
 			                                  TRUE, NULL);
 		g_free (pix_uri);
 	}
@@ -2795,7 +2800,7 @@ pragha_library_pane_init_pixbufs(PraghaLibraryPane *librarypane)
 	pix_uri = g_build_filename (PIXMAPDIR, "genre.png", NULL);
 	librarypane->pixbuf_genre =
 		gdk_pixbuf_new_from_file_at_scale(pix_uri,
-		                                  16, 16,
+		                                  icon_size, icon_size,
 		                                  TRUE, NULL);
 	if (!librarypane->pixbuf_genre)
 		g_warning("Unable to load genre png");
@@ -2804,13 +2809,13 @@ pragha_library_pane_init_pixbufs(PraghaLibraryPane *librarypane)
 	librarypane->pixbuf_dir =
 		gtk_icon_theme_load_icon(icontheme,
 		                         "folder-music",
-		                         16, 0,
+		                         icon_size, GTK_ICON_LOOKUP_FORCE_SIZE,
 		                         NULL);
 	if (!librarypane->pixbuf_dir)
 		librarypane->pixbuf_dir =
 			gtk_icon_theme_load_icon(icontheme,
 			                         "folder",
-			                         16, 0,
+			                         icon_size, GTK_ICON_LOOKUP_FORCE_SIZE,
 			                         NULL);
 	if (!librarypane->pixbuf_dir)
 		g_warning("Unable to load folder png");

@@ -97,6 +97,16 @@ pragha_sidebar_get_n_panes (PraghaSidebar *sidebar)
 	return 	gtk_notebook_get_n_pages (GTK_NOTEBOOK(sidebar->container));
 }
 
+void
+pragha_sidebar_style_position (PraghaSidebar *sidebar, GtkPositionType position)
+{
+	GtkWidget *parent;
+	parent  = gtk_widget_get_parent (GTK_WIDGET(sidebar->close_button));
+	gtk_box_reorder_child (GTK_BOX(parent),
+	                       GTK_WIDGET(sidebar->close_button),
+	                       (position == GTK_POS_RIGHT) ? 0 : 1);
+}
+
 /*
  * Internal Calbacks.
  */
@@ -183,6 +193,26 @@ pragha_sidebar_right_click_cb(GtkWidget *widget,
  * Construction:
  **/
 
+void
+pragha_sidebar_set_tiny_button (GtkWidget *button)
+{
+	GtkCssProvider *provider;
+	provider = gtk_css_provider_new ();
+	gtk_css_provider_load_from_data (provider,
+	                                 "#s-tiny-button {\n"
+	                                 " -GtkButton-default-border : 0px;\n"
+	                                 " -GtkButton-default-outside-border : 0px;\n"
+	                                 " -GtkButton-inner-border: 0px;\n"
+	                                 " -GtkWidget-focus-line-width: 0px;\n"
+	                                 " -GtkWidget-focus-padding: 0px;\n"
+	                                 " padding: 1px;}",
+	                                 -1, NULL);
+	gtk_style_context_add_provider (gtk_widget_get_style_context (button),
+	                                GTK_STYLE_PROVIDER (provider),
+	                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	gtk_widget_set_name (button, "s-tiny-button");
+	g_object_unref (provider);
+}
 
 GtkWidget *
 praga_sidebar_menu_button_new (PraghaSidebar *sidebar)
@@ -207,6 +237,8 @@ praga_sidebar_menu_button_new (PraghaSidebar *sidebar)
 	                    arrow,
 	                    FALSE, FALSE, 0);
 
+	gtk_widget_set_valign (GTK_WIDGET(sidebar->title_box), GTK_ALIGN_CENTER);
+
 	gtk_container_add (GTK_CONTAINER(button), hbox);
 
 	g_signal_connect(G_OBJECT(button),
@@ -220,13 +252,25 @@ praga_sidebar_menu_button_new (PraghaSidebar *sidebar)
 GtkWidget *
 pragha_sidebar_close_button_new(PraghaSidebar *sidebar)
 {
-	GtkWidget *button, *image;
-    
+	GtkWidget *button;
+	GIcon *icon = NULL;
+
+ 	const gchar *fallback_icons[] = {
+		"view-left-close",
+		"tab-close",
+		"window-close",
+		NULL,
+	};
+   
 	button = gtk_button_new ();
-	image = gtk_image_new_from_icon_name ("window-close", GTK_ICON_SIZE_MENU);
 	gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
 	gtk_button_set_focus_on_click (GTK_BUTTON (button), FALSE);
-	gtk_container_add (GTK_CONTAINER (button), image);
+	pragha_sidebar_set_tiny_button (button);
+
+	icon = g_themed_icon_new_from_names ((gchar **)fallback_icons, -1);
+	gtk_button_set_image (GTK_BUTTON (button),
+		gtk_image_new_from_gicon(icon, GTK_ICON_SIZE_MENU));
+	g_object_unref (icon);
 
 	g_signal_connect(G_OBJECT (button),
 	                 "clicked",

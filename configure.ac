@@ -6,12 +6,12 @@ dnl
 dnl Version information
 m4_define([pragha_version_major], [1])
 m4_define([pragha_version_minor], [3])
-m4_define([pragha_version_micro], [1])
+m4_define([pragha_version_micro], [3.git])
 
 m4_define([pragha_version], [pragha_version_major().pragha_version_minor().pragha_version_micro()])
 
 dnl Initialize autoconf
-AC_COPYRIGHT([Copyright (c) 2009-2014
+AC_COPYRIGHT([Copyright (c) 2009-2015
         Matias De lellis <mati86dl@gmail.com>])
 AC_INIT([pragha], [pragha_version()], [mati86dl@gmail.com])
 AC_CONFIG_HEADERS([config.h])
@@ -52,6 +52,9 @@ fi
 
 AC_SUBST(CFLAGS)
 
+PLUGIN_LIBTOOL_FLAGS="-avoid-version -module -shared -export-dynamic -no-undefined"
+AC_SUBST(PLUGIN_LIBTOOL_FLAGS)
+
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 dnl Check for basic programs
@@ -65,17 +68,17 @@ LT_PREREQ([2.2.6])
 LT_INIT([disable-static])
 
 dnl Check for i18n support
-XDT_I18N([cs de es el fr hu it ja ko_KR nl no pl pt pt_BR ru sv tr uk vi zh_CN])
+XDT_I18N([ca_ES cs de es el fr hu it ja ko_KR nl no pl pt pt_BR ru sv tr uk vi zh_CN])
 
 GSTREAMER_REQUIRED=0.11.90
 
 dnl Check for required packages
 XDT_CHECK_PACKAGE([GSTREAMER], [gstreamer-1.0], [$GSTREAMER_REQUIRED])
 XDT_CHECK_PACKAGE([GSTREAMER_BASE], [gstreamer-base-1.0], [$GSTREAMER_REQUIRED])
-XDT_CHECK_PACKAGE([GIO], [gio-2.0], [2.32])
-XDT_CHECK_PACKAGE([GTK], [gtk+-3.0], [3.4.0])
+XDT_CHECK_PACKAGE([GIO], [gio-2.0], [2.36])
+XDT_CHECK_PACKAGE([GTK], [gtk+-3.0], [3.8.0])
 XDT_CHECK_PACKAGE([SQLITE3], [sqlite3], [3.4])
-XDT_CHECK_PACKAGE([TAGLIB_C], [taglib_c], [1.4])
+XDT_CHECK_PACKAGE([TAGLIB_C], [taglib_c], [1.8])
 
 dnl Check peas library to plugins support
 LIBPEAS_FOUND="no"
@@ -92,7 +95,7 @@ dnl Check notify support
 LIBNOTIFY_FOUND="no"
 if test x"$LIBPEAS_FOUND" = x"yes"; then
 XDT_CHECK_OPTIONAL_PACKAGE([LIBNOTIFY],
-                           [libnotify], [0.4.4],
+                           [libnotify], [0.7.5],
                            [libnotify],
                            [libnotify library], [yes])
 else
@@ -219,13 +222,6 @@ fi
 fi
 fi
 
-dnl Check min taglib to add monkeyaudio support
-TAGLIB_1_7_FOUND="no"
-XDT_CHECK_OPTIONAL_PACKAGE([TAGLIB_1_7],
-                       [taglib], [1.7.0],
-                       [taglib],
-                       [taglib library to APE], [yes])
-
 dnl Check gstreamer-audio
 GSTREAMER_AUDIO_FOUND="no"
 XDT_CHECK_OPTIONAL_PACKAGE([GSTREAMER_AUDIO],
@@ -249,9 +245,16 @@ XDT_CHECK_OPTIONAL_PACKAGE([PLPARSER],
 
 dnl Output files
 AC_CONFIG_FILES([Makefile])
-AC_CONFIG_FILES([src/Makefile])
 AC_CONFIG_FILES([data/Makefile])
+AC_CONFIG_FILES([data/icons/Makefile])
+AC_CONFIG_FILES([data/icons/16x16/Makefile])
+AC_CONFIG_FILES([data/icons/24x24/Makefile])
+AC_CONFIG_FILES([data/icons/32x32/Makefile])
+AC_CONFIG_FILES([data/icons/48x48/Makefile])
+AC_CONFIG_FILES([data/icons/64x64/Makefile])
+AC_CONFIG_FILES([data/icons/128x128/Makefile])
 AC_CONFIG_FILES([po/Makefile.in])
+AC_CONFIG_FILES([src/Makefile])
 
 if test x"$LIBPEAS_FOUND" = x"yes"; then
 AC_CONFIG_FILES([plugins/Makefile])
@@ -280,18 +283,19 @@ echo "  Prefix................: ${prefix}"
 echo "  Debug enabled.........: $debug"
 echo ""
 echo "  Plugins enabled.......: $LIBPEAS_FOUND"
-echo "   * Show notification when change songs....................................: $LIBNOTIFY_FOUND"
+echo "   * Show notification when change songs..........(Need libnotify >= 0.7.5).: $LIBNOTIFY_FOUND"
 echo "   * Controls Pragha using Mpris2 interface.................................: $LIBPEAS_FOUND"
 echo "   * Controls Pragha using gnome-media-keys interface.......................: $LIBPEAS_FOUND"
-echo "   * Play Audio cds.........................................................: $CDROM_SUPPORT"
-echo "   * Controls Pragha using multimedia keys.............(Need keybinder-3.0).: $LIBKEYBINDER_FOUND"
+echo "   * Play Audio cds...............(Need libcdio, libcdio_paranoia, libcddb).: $CDROM_SUPPORT"
+echo "   * Controls Pragha using multimedia keys....(Need keybinder-3.0 >= 0.2.0).: $LIBKEYBINDER_FOUND"
 echo "   * Search lyrics, artists info and albums art.....(Need libglyr >= 1.0.1).: $LIBGLYR_FOUND"
 echo "   * Search metadata on AcoustID.....................(Need libsoup >= 2.38).: $LIBSOUP_FOUND"
 echo "   * Search radios on TuneIn.........................(Need libsoup >= 2.38).: $LIBSOUP_FOUND"
-echo "   * Share music library on DLNA............(Need rygel-server-2.0 >= 0.20).: $RYGEL_FOUND"
+echo "   * Share music library on DLNA............(Need rygel-server-2.2 >= 0.20).: $RYGEL_FOUND"
 echo "   * Play songs on DLNA Servers..................(Need grilo-0.2 >= 0.2.10).: $GRILO_FOUND"
 echo "   * Lastfm scroble, and add similar songs support (Need libclastfm >= 0.5).: $LIBCLASTFM_FOUND"
-echo "   * EXPERIMENTAL management removable devices.:(Need gudev-1.0 and libmtp).: $LIBMTP_FOUND"
+echo "   * EXPERIMENTAL management of removable devices..........(Need gudev-1.0).: $GUDEV_FOUND"
+echo "   * EXPERIMENTAL management of mtp devices....:(Need gudev-1.0 and libmtp).: $LIBMTP_FOUND"
 echo ""
 echo "  Others build options..:"
 echo "   * Cubic volume support.....................(Need gstreamer-plugins-base).: $GSTREAMER_AUDIO_FOUND"

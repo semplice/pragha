@@ -31,7 +31,6 @@
 #include "pragha-hig.h"
 #include "pragha-utils.h"
 #include "pragha-musicobject-mgmt.h"
-#include "pragha.h"
 
 static void     pragha_tags_dialog_dispose            (GObject *object);
 static void     pragha_tags_dialog_finalize           (GObject *object);
@@ -152,6 +151,8 @@ pragha_tags_dialog_init (PraghaTagsDialog *dialog)
 
 	entry_comment = gtk_text_view_new();
 	gtk_text_view_set_accepts_tab (GTK_TEXT_VIEW (entry_comment), FALSE);
+	gtk_widget_set_hexpand (entry_comment, TRUE);
+	gtk_widget_set_vexpand (entry_comment, TRUE);
 
 	entry_file = gtk_entry_new();
 

@@ -27,11 +27,11 @@
 #include <glib/gi18n.h>
 #endif
 
+#include <stdlib.h>
+
 #ifdef HAVE_LIBXFCE4UI
 #include <libxfce4ui/libxfce4ui.h>
 #endif
-
-#include <stdlib.h>
 
 #include "pragha-playback.h"
 #include "pragha-window.h"
@@ -119,14 +119,7 @@ cmd_add_files (PraghaApplication *pragha, GApplicationCommandLine *command_line)
 	GPtrArray *files = g_ptr_array_new_with_free_func (g_object_unref);
 
 	while (*file_names) {
-#if GLIB_CHECK_VERSION (2, 36, 0)
 		GFile *file = g_application_command_line_create_file_for_arg (command_line, *file_names);
-#else
-		const gchar *cwd = g_application_command_line_get_cwd (command_line);
-		gchar *filename = g_build_filename (cwd, *file_names, NULL);
-		GFile *file = g_file_new_for_path (filename);
-		g_free (filename);
-#endif
 		g_ptr_array_add (files, file);
 		file_names++;
 	}

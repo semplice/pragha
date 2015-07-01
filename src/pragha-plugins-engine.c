@@ -15,19 +15,27 @@
 /* along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 /*************************************************************************/
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "pragha-plugins-engine.h"
 
 #include <libpeas/peas.h>
 
 #include "pragha-utils.h"
+#include "pragha-debug.h"
+#include "pragha.h"
 
 struct _PraghaPluginsEngine {
 	GObject           _parent;
 
-	PraghaApplication *pragha;
+	GObject           *object;
 
 	PeasEngine        *peas_engine;
 	PeasExtensionSet  *peas_exten_set;
+
+	gboolean           shutdown;
 };
 
 G_DEFINE_TYPE(PraghaPluginsEngine, pragha_plugins_engine, G_TYPE_OBJECT)
@@ -50,6 +58,12 @@ on_extension_removed (PeasExtensionSet  *set,
 	peas_activatable_deactivate (PEAS_ACTIVATABLE (exten));
 }
 
+gboolean
+pragha_plugins_is_shutdown (PraghaPluginsEngine *engine)
+{
+	return engine->shutdown;
+}
+
 void
 pragha_plugins_engine_shutdown (PraghaPluginsEngine *engine)
 {
@@ -58,12 +72,14 @@ pragha_plugins_engine_shutdown (PraghaPluginsEngine *engine)
 
 	CDEBUG(DBG_PLUGIN,"Plugins engine shutdown");
 
+	engine->shutdown = TRUE;
+
 	g_signal_handlers_disconnect_by_func (engine->peas_exten_set, (GCallback) on_extension_added, engine);
 	g_signal_handlers_disconnect_by_func (engine->peas_exten_set, (GCallback) on_extension_removed, engine);
 
 	loaded_plugins = peas_engine_get_loaded_plugins (engine->peas_engine);
 	if (loaded_plugins) {
-		preferences = pragha_application_get_preferences (engine->pragha);
+		preferences = pragha_application_get_preferences (PRAGHA_APPLICATION(engine->object));
 		pragha_preferences_set_string_list (preferences,
 				                            "PLUGINS",
 				                            "Activated",
@@ -80,11 +96,11 @@ pragha_plugins_engine_startup (PraghaPluginsEngine *engine)
 {
 	PraghaPreferences *preferences;
 	gchar **loaded_plugins = NULL;
-	const gchar *default_plugins[] = {"notify", "song-info", NULL};
+	const gchar *default_plugins[] = {"notify", "mpris2", "song-info", NULL};
 
 	CDEBUG(DBG_PLUGIN,"Plugins engine startup");
 
-	preferences = pragha_application_get_preferences (engine->pragha);
+	preferences = pragha_application_get_preferences (PRAGHA_APPLICATION(engine->object));
 
 	if (string_is_not_empty (pragha_preferences_get_installed_version (preferences))) {
 		loaded_plugins = pragha_preferences_get_string_list (preferences,
@@ -113,7 +129,6 @@ pragha_plugins_engine_dispose (GObject *object)
 	CDEBUG(DBG_PLUGIN,"Dispose plugins engine");
 
 	if (engine->peas_exten_set) {
-	
 		g_object_unref (engine->peas_exten_set);
 		engine->peas_exten_set = NULL;
 	}
@@ -123,9 +138,9 @@ pragha_plugins_engine_dispose (GObject *object)
 		g_object_unref (engine->peas_engine);
 		engine->peas_engine = NULL;
 	}
-	if (engine->pragha) {
-		g_object_unref (engine->pragha);
-		engine->pragha = NULL;
+	if (engine->object) {
+		g_object_unref (engine->object);
+		engine->object = NULL;
 	}
 
 	G_OBJECT_CLASS(pragha_plugins_engine_parent_class)->dispose(object);
@@ -144,10 +159,11 @@ static void
 pragha_plugins_engine_init (PraghaPluginsEngine *engine)
 {
 	engine->peas_engine = peas_engine_get_default ();
+	engine->shutdown = FALSE;
 }
 
 PraghaPluginsEngine *
-pragha_plugins_engine_new (PraghaApplication *pragha)
+pragha_plugins_engine_new (GObject *object)
 {
 	PraghaPluginsEngine *engine;
 
@@ -155,13 +171,13 @@ pragha_plugins_engine_new (PraghaApplication *pragha)
 
 	engine = g_object_new (PRAGHA_TYPE_PLUGINS_ENGINE, NULL);
 
-	engine->pragha = g_object_ref(pragha);
+	engine->object = g_object_ref(object);
 
 	peas_engine_add_search_path (engine->peas_engine, LIBPLUGINDIR, USRPLUGINDIR);
 
 	engine->peas_exten_set = peas_extension_set_new (engine->peas_engine,
 	                                                 PEAS_TYPE_ACTIVATABLE,
-	                                                 "object", pragha,
+	                                                 "object", object,
 	                                                 NULL);
 
 	g_signal_connect (engine->peas_exten_set, "extension-added",

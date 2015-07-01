@@ -47,6 +47,7 @@ struct _PraghaPreferencesClass
 	GObjectClass parent_class;
 	void (*plugins_change) (PraghaPreferences *preferences, const gchar *key);
   void (*library_change) (PraghaPreferences *preferences);
+  void (*need_restart) (PraghaPreferences *preferences);
 };
 
 /* Defines to key preferences. */
@@ -84,7 +85,6 @@ struct _PraghaPreferencesClass
 #define KEY_AUDIO_DEVICE           "audio_device"
 #define KEY_SOFTWARE_MIXER         "software_mixer"
 #define KEY_SOFTWARE_VOLUME        "software_volume"
-#define KEY_AUDIO_CD_DEVICE        "audio_cd_device"
 #define KEY_EQ_10_BANDS            "equealizer_10_bands"
 #define KEY_EQ_PRESET              "equalizer_preset"
 
@@ -100,18 +100,14 @@ struct _PraghaPreferencesClass
 #define KEY_SHOW_ALBUM_ART         "show_album_art"
 #define KEY_ALBUM_ART_SIZE         "album_art_size"
 #define KEY_STATUS_BAR             "status_bar"
+#define KEY_GNOME_STYLE            "gnome_style"
 #define KEY_CONTROLS_BELOW         "controls_below"
-
-#define GROUP_SERVICES   "services"
-#define KEY_LASTFM                 "lastfm"
-#define KEY_LASTFM_USER            "lastfm_user"
-#define KEY_LASTFM_PASS            "lastfm_pass"
-#define KEY_USE_CDDB               "use_cddb"
+#define KEY_SHOW_MENUBAR           "show_menubar"
 
 /* Some default preferences. */
 
 #define DEFAULT_SIDEBAR_SIZE       200
-#define DEFAULT_ALBUM_ART_SIZE     36
+#define DEFAULT_ALBUM_ART_SIZE     32
 
 #define DEFAULT_SINK               "default"
 #define ALSA_SINK                  "alsa"
@@ -204,10 +200,22 @@ pragha_preferences_set_filename_list (PraghaPreferences *preferences,
                                       const gchar *key,
                                       GSList *list);
 
+/**
+ * pragha_preferences_remove_key:
+ *
+ */
 void
 pragha_preferences_remove_key (PraghaPreferences *preferences,
-                               const gchar *group_name,
-                               const gchar *key);
+                               const gchar       *group_name,
+                               const gchar       *key);
+
+gboolean
+pragha_preferences_has_group (PraghaPreferences *preferences,
+                              const gchar       *group_name);
+
+void
+pragha_preferences_remove_group (PraghaPreferences *preferences,
+                                 const gchar       *group_name);
 
 /*
  * Specific plugin api.
@@ -224,6 +232,9 @@ pragha_preferences_get_plugin_group_name (PraghaPreferences *preferences,
 /*
  * Public api.
  */
+
+void
+pragha_preferences_need_restart (PraghaPreferences *preferences);
 
 GSList *
 pragha_preferences_get_library_list (PraghaPreferences *preferences);
@@ -316,13 +327,6 @@ void
 pragha_preferences_set_software_volume (PraghaPreferences *preferences,
                                         gdouble software_volume);
 
-const gchar *
-pragha_preferences_get_audio_cd_device (PraghaPreferences *preferences);
-
-void
-pragha_preferences_set_audio_cd_device (PraghaPreferences *preferences,
-                                        const gchar *audio_cd_device);
-
 gboolean
 pragha_preferences_get_lateral_panel (PraghaPreferences *preferences);
 
@@ -371,6 +375,20 @@ pragha_preferences_get_show_status_icon (PraghaPreferences *preferences);
 void
 pragha_preferences_set_show_status_icon (PraghaPreferences *preferences,
                                          gboolean show_status_icon);
+
+gboolean
+pragha_preferences_get_show_menubar (PraghaPreferences *preferences);
+
+void
+pragha_preferences_set_show_menubar (PraghaPreferences *preferences,
+                                     gboolean           show_menubar);
+
+gboolean
+pragha_preferences_get_gnome_style (PraghaPreferences *preferences);
+
+void
+pragha_preferences_set_gnome_style (PraghaPreferences *preferences,
+                                    gboolean           gnome_style);
 
 gboolean
 pragha_preferences_get_controls_below (PraghaPreferences *preferences);
@@ -436,11 +454,11 @@ pragha_preferences_set_hide_instead_close (PraghaPreferences *preferences,
                                            gboolean hide_instead_close);
 
 gboolean
-pragha_preferences_get_use_cddb (PraghaPreferences *preferences);
+pragha_preferences_get_lock_library (PraghaPreferences *preferences);
 
 void
-pragha_preferences_set_use_cddb (PraghaPreferences *preferences,
-                                 gboolean use_cddb);
+pragha_preferences_set_lock_library (PraghaPreferences *preferences,
+                                     gboolean           lock_library);
 
 G_END_DECLS
 

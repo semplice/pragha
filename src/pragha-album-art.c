@@ -18,6 +18,7 @@
 #include "pragha-album-art.h"
 
 #include <glib.h>
+
 #ifdef G_OS_WIN32
 #include "../win32/win32dep.h"
 #endif
@@ -280,8 +281,8 @@ pragha_album_art_class_init (PraghaAlbumArtClass *klass)
       g_param_spec_uint("size",
                         "Size",
                         "The album art size",
-                        36, 128,
-                        48,
+                        24, 128,
+                        36,
                         G_PARAM_READWRITE |
                         G_PARAM_STATIC_STRINGS);
 

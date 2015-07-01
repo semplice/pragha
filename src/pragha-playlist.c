@@ -40,7 +40,6 @@
 #include "pragha-tags-dialog.h"
 #include "pragha-musicobject-mgmt.h"
 #include "pragha-dnd.h"
-#include "pragha.h"
 
 /**
  * PraghaPlaylist - Pertains to the current state of the playlist
@@ -538,23 +537,37 @@ pragha_playlist_stopped_playback (PraghaPlaylist *playlist)
 
 /* Update playback state pixbuf */
 
+static gint
+get_playlist_icon_size (void)
+{
+	gint width, height;
+	if (gtk_icon_size_lookup (GTK_ICON_SIZE_MENU, &width, &height))
+		return MAX (width, height);
+	else
+		return 16;
+}
+
 static void
 pragha_playlist_update_track_state (PraghaPlaylist *playlist, GtkTreePath *path, PraghaBackendState state)
 {
 	GtkIconTheme *icon_theme;
 	GdkPixbuf *pixbuf = NULL;
 	GtkTreeIter iter;
+	gint icon_size = 0;
 
 	if (pragha_playlist_is_changing (playlist))
 		return;
 
 	if (playlist->track_error) {
 		icon_theme = gtk_icon_theme_get_default ();
+		icon_size = get_playlist_icon_size ();
 
 		if(playlist->track_error->code == GST_RESOURCE_ERROR_NOT_FOUND)
-			pixbuf = gtk_icon_theme_load_icon (icon_theme, "list-remove", 16, 0, NULL);
+			pixbuf = gtk_icon_theme_load_icon (icon_theme, "list-remove",
+			                                   icon_size, GTK_ICON_LOOKUP_FORCE_SIZE, NULL);
 		else
-			pixbuf = gtk_icon_theme_load_icon (icon_theme, "dialog-warning", 16, 0, NULL);
+			pixbuf = gtk_icon_theme_load_icon (icon_theme, "dialog-warning",
+			                                   icon_size, GTK_ICON_LOOKUP_FORCE_SIZE, NULL);
 	}
 	else {
 		switch (state) {
@@ -3325,7 +3338,7 @@ init_current_playlist_columns(PraghaPlaylist* cplaylist)
 	col = gtk_tree_view_get_column(GTK_TREE_VIEW(cplaylist->view), 0);
 	gtk_tree_view_column_set_visible(col, TRUE);
 	gtk_tree_view_column_set_sizing(col, GTK_TREE_VIEW_COLUMN_FIXED);
-	gtk_tree_view_column_set_fixed_width(col, 32);
+	gtk_tree_view_column_set_fixed_width(col, 36);
 }
 
 static GtkWidget*
@@ -3545,7 +3558,7 @@ create_current_playlist_columns(PraghaPlaylist *cplaylist, GtkTreeView *view)
 	column = gtk_tree_view_column_new ();
 
 	renderer = gtk_cell_renderer_bubble_new ();
-	gtk_cell_renderer_set_fixed_size (renderer, 12, -1);
+	gtk_cell_renderer_set_fixed_size (renderer, 14, -1);
 	gtk_tree_view_column_pack_start (column, renderer, FALSE);
 	gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(renderer), 1);
 	gtk_tree_view_column_set_attributes(column, renderer, "markup", P_QUEUE, "show-bubble", P_BUBBLE, NULL);
@@ -4341,15 +4354,14 @@ static void
 pragha_playlist_init_pixbuf(PraghaPlaylist* cplaylist)
 {
 	GtkIconTheme *icontheme = gtk_icon_theme_get_default();
+	gint icon_size = get_playlist_icon_size();
 
 	cplaylist->playing_pixbuf =
-		gtk_icon_theme_load_icon (icontheme,
-					  "media-playback-start",
-					  16, 0, NULL);
+		gtk_icon_theme_load_icon (icontheme, "media-playback-start",
+		                          icon_size, GTK_ICON_LOOKUP_FORCE_SIZE, NULL);
 	cplaylist->paused_pixbuf =
-		gtk_icon_theme_load_icon (icontheme,
-					  "media-playback-pause",
-					  16, 0, NULL);
+		gtk_icon_theme_load_icon (icontheme, "media-playback-pause",
+		                          icon_size, GTK_ICON_LOOKUP_FORCE_SIZE, NULL);
 }
 
 static void

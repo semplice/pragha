@@ -26,25 +26,30 @@
 /* Create a new haeder widget to use in preferences.
  * Based in Midori Web Browser. Copyright (C) 2007 Christian Dywan. */
 
-gpointer sokoke_xfce_header_new(const gchar* header, const gchar *icon)
+gpointer sokoke_xfce_header_new(const gchar* header, const gchar *icon_name)
 {
 	GtkWidget* xfce_heading;
 	GtkWidget* hbox;
 	GtkWidget* vbox;
+	GdkPixbuf* icon;
 	GtkWidget* image;
 	GtkWidget* label;
 	GtkWidget* separator;
 	gchar* markup;
+	gint width = 1, height = 1;
 
 	xfce_heading = gtk_event_box_new();
 
 	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
 	gtk_container_set_border_width(GTK_CONTAINER(hbox), 6);
 
-	if (icon)
-		image = gtk_image_new_from_icon_name (icon, GTK_ICON_SIZE_DIALOG);
-	else
-		image = gtk_image_new_from_icon_name ("dialog-information", GTK_ICON_SIZE_DIALOG);
+	gtk_icon_size_lookup (GTK_ICON_SIZE_DIALOG, &width, &height);
+	icon = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (),
+	                                 icon_name ? icon_name : "dialog-information",
+	                                 width,
+	                                 GTK_ICON_LOOKUP_FORCE_SIZE, NULL);
+	image = gtk_image_new_from_pixbuf (GDK_PIXBUF(icon));
+	g_object_unref (icon);
 
 	label = gtk_label_new(NULL);
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
@@ -120,4 +125,57 @@ PraghaTrackProgress *
 pragha_track_progress_new (void)
 {
 	return g_object_new (PRAGHA_TYPE_TRACK_PROGRESS, NULL);
+}
+
+/*
+ * PraghaContainer: An extension of GtkContainer to expand their default size.
+ */
+#define PRAGHA_TYPE_CONTAINER (pragha_container_get_type())
+#define PRAGHA_CONTAINER(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), PRAGHA_TYPE_CONTAINER, PraghaContainer))
+#define PRAGHA_CONTAINER_CONST(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), PRAGHA_TYPE_CONTAINER, PraghaContainer const))
+#define PRAGHA_CONTAINER_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST ((klass), PRAGHA_TYPE_CONTAINER, PraghaContainerClass))
+#define PRAGHA_IS_CONTAINER(obj) (G_TYPE_CHECK_INSTANCE_TYPE ((obj), PRAGHA_TYPE_CONTAINER))
+#define PRAGHA_IS_CONTAINER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), PRAGHA_TYPE_CONTAINER))
+#define PRAGHA_CONTAINER_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), PRAGHA_TYPE_CONTAINER, PraghaContainerClass))
+
+typedef struct _PraghaContainerClass PraghaContainerClass;
+
+struct _PraghaContainerClass {
+	GtkBoxClass parent_class;
+};
+struct _PraghaContainer {
+	GtkBox _parent;
+};
+G_DEFINE_TYPE(PraghaContainer, pragha_container, GTK_TYPE_BOX)
+
+static void
+pragha_container_get_preferred_width (GtkWidget *widget,
+                                      gint      *minimum,
+                                      gint      *natural)
+{
+	if (minimum)
+		*minimum = 140;
+	if (natural)
+		*natural = 1600;
+}
+
+static void
+pragha_container_class_init (PraghaContainerClass *class)
+{
+	GtkWidgetClass *widget_class;
+
+	widget_class = GTK_WIDGET_CLASS (class);
+	widget_class->get_preferred_width = pragha_container_get_preferred_width;
+}
+
+static void
+pragha_container_init (PraghaContainer *widget)
+{
+	gtk_orientable_set_orientation (GTK_ORIENTABLE (widget), GTK_ORIENTATION_HORIZONTAL);
+}
+
+PraghaContainer *
+pragha_container_new (void)
+{
+	return g_object_new (PRAGHA_TYPE_CONTAINER, NULL);
 }

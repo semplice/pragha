@@ -39,8 +39,10 @@
 #include "src/pragha.h"
 #include "src/pragha-hig.h"
 #include "src/pragha-utils.h"
+#include "src/pragha-menubar.h"
 #include "src/pragha-musicobject.h"
 #include "src/pragha-musicobject-mgmt.h"
+#include "src/pragha-plugins-engine.h"
 #include "src/pragha-statusicon.h"
 #include "src/pragha-tagger.h"
 #include "src/pragha-simple-async.h"
@@ -100,9 +102,15 @@ PRAGHA_PLUGIN_REGISTER (PRAGHA_TYPE_LASTFM_PLUGIN,
                         PraghaLastfmPlugin,
                         pragha_lastfm_plugin)
 
-
+/*
+ * Some useful definitions
+ */
 #define LASTFM_API_KEY "ecdc2d21dbfe1139b1f0da35daca9309"
 #define LASTFM_SECRET  "f3498ce387f30eeae8ea1b1023afb32b"
+
+#define KEY_LASTFM_SCROBBLE "scrobble"
+#define KEY_LASTFM_USER     "lastfm_user"
+#define KEY_LASTFM_PASS     "lastfm_pass"
 
 #define WAIT_UPDATE 5
 
@@ -153,12 +161,9 @@ pragha_lastfm_async_data_free (PraghaLastfmAsyncData *data)
 }
 
 /*
- * Prototypes
+ * Menubar Prototypes
  */
 
-static void lastfm_get_similar_current_playlist_action  (GtkAction *action, PraghaLastfmPlugin *plugin);
-static void lastfm_track_current_playlist_love_action   (GtkAction *action, PraghaLastfmPlugin *plugin);
-static void lastfm_track_current_playlist_unlove_action (GtkAction *action, PraghaLastfmPlugin *plugin);
 static void lastfm_add_favorites_action                 (GtkAction *action, PraghaLastfmPlugin *plugin);
 static void lastfm_get_similar_action                   (GtkAction *action, PraghaLastfmPlugin *plugin);
 static void lastfm_import_xspf_action                   (GtkAction *action, PraghaLastfmPlugin *plugin);
@@ -179,9 +184,9 @@ static const GtkActionEntry main_menu_actions [] = {
 	 "", "Add similar", G_CALLBACK(lastfm_get_similar_action)},
 };
 
-static const gchar *main_menu_xml = "<ui>					\
-	<menubar name=\"Menubar\">						\
-		<menu action=\"ToolsMenu\">					\
+static const gchar *main_menu_xml = "<ui>						\
+	<menubar name=\"Menubar\">							\
+		<menu action=\"ToolsMenu\">						\
 			<placeholder name=\"pragha-plugins-placeholder\">		\
 				<menu action=\"Lastfm\">				\
 					<menuitem action=\"Love track\"/>		\
@@ -192,10 +197,19 @@ static const gchar *main_menu_xml = "<ui>					\
 					<menuitem action=\"Add similar\"/>		\
 				</menu>							\
 				<separator/>						\
-			</placeholder>						\
-		</menu>								\
-	</menubar>								\
+			</placeholder>							\
+		</menu>									\
+	</menubar>									\
 </ui>";
+
+
+/*
+ * Playlist Prototypes.
+ */
+
+static void lastfm_get_similar_current_playlist_action  (GtkAction *action, PraghaLastfmPlugin *plugin);
+static void lastfm_track_current_playlist_love_action   (GtkAction *action, PraghaLastfmPlugin *plugin);
+static void lastfm_track_current_playlist_unlove_action (GtkAction *action, PraghaLastfmPlugin *plugin);
 
 static const GtkActionEntry playlist_actions [] = {
 	{"Love track", NULL, N_("Love track"),
@@ -206,19 +220,61 @@ static const GtkActionEntry playlist_actions [] = {
 	 "", "Add similar", G_CALLBACK(lastfm_get_similar_current_playlist_action)},
 };
 
-static const gchar *playlist_xml = "<ui>					\
-	<popup name=\"SelectionPopup\">		   				\
-	<menu action=\"ToolsMenu\">						\
+static const gchar *playlist_xml = "<ui>						\
+	<popup name=\"SelectionPopup\">		   					\
+	<menu action=\"ToolsMenu\">							\
 		<placeholder name=\"pragha-plugins-placeholder\">			\
 			<menuitem action=\"Love track\"/>				\
 			<menuitem action=\"Unlove track\"/>				\
 			<separator/>							\
 			<menuitem action=\"Add similar\"/>				\
-			<separator/>						\
-		</placeholder>							\
-	</menu>									\
-	</popup>				    				\
+			<separator/>							\
+		</placeholder>								\
+	</menu>										\
+	</popup>				    					\
 </ui>";
+
+/*
+ * Gear Menu Prototypes
+ */
+static void pragha_gmenu_lastfm_add_favorites_action    (GSimpleAction *action,
+                                                         GVariant      *parameter,
+                                                         gpointer       user_data);
+static void pragha_gmenu_lastfm_get_similar_action      (GSimpleAction *action,
+                                                         GVariant      *parameter,
+                                                         gpointer       user_data);
+static void pragha_gmenu_lastfm_import_xspf_action      (GSimpleAction *action,
+                                                         GVariant      *parameter,
+                                                         gpointer       user_data);
+static void pragha_gmenu_lastfm_track_love_action       (GSimpleAction *action,
+                                                         GVariant      *parameter,
+                                                         gpointer       user_data);
+static void pragha_gmenu_lastfm_track_unlove_action     (GSimpleAction *action,
+                                                         GVariant      *parameter,
+                                                         gpointer       user_data);
+
+static GActionEntry lastfm_entries[] = {
+	{ "lastfm-love",       pragha_gmenu_lastfm_track_love_action,    NULL, NULL, NULL },
+	{ "lastfm-unlove",     pragha_gmenu_lastfm_track_unlove_action,  NULL, NULL, NULL },
+	{ "lastfm-import",     pragha_gmenu_lastfm_import_xspf_action,   NULL, NULL, NULL },
+	{ "lastfm-favorities", pragha_gmenu_lastfm_add_favorites_action, NULL, NULL, NULL },
+	{ "lastfm-similar",    pragha_gmenu_lastfm_get_similar_action,   NULL, NULL, NULL }
+};
+
+static const gchar *lastfm_menu_ui = \
+	NEW_MENU("menubar") \
+		OPEN_PLACEHOLDER("pragha-plugins-placeholder") \
+			NEW_NAMED_SUBMENU("lastfm-sudmenu", "_Lastfm") \
+				NEW_ITEM("Love track",             "win", "lastfm-love") \
+				NEW_ITEM("Unlove track",           "win", "lastfm-unlove") \
+				SEPARATOR \
+				NEW_ITEM("Import a XSPF playlist", "win", "lastfm-import") \
+				NEW_ITEM("Add favorites",          "win", "lastfm-favorities") \
+				NEW_ITEM("Add similar",            "win", "lastfm-similar") \
+			CLOSE_SUBMENU \
+		CLOSE_PLACEHOLDER \
+	CLOSE_MENU;
+
 
 /* Save a get the lastfm password.
  * TODO: Implement any basic crypto.
@@ -227,62 +283,100 @@ static const gchar *playlist_xml = "<ui>					\
 static void
 pragha_lastfm_plugin_set_password (PraghaPreferences *preferences, const gchar *pass)
 {
+	gchar *plugin_group = NULL;
+	plugin_group = pragha_preferences_get_plugin_group_name (preferences, "lastfm");
+
 	if (string_is_not_empty(pass))
 		pragha_preferences_set_string (preferences,
-		                               GROUP_SERVICES,
+		                               plugin_group,
 		                               KEY_LASTFM_PASS,
 		                               pass);
 	else
  		pragha_preferences_remove_key (preferences,
-		                               GROUP_SERVICES,
+		                               plugin_group,
 		                               KEY_LASTFM_PASS);
+
+	g_free (plugin_group);
 }
 
 static gchar *
 pragha_lastfm_plugin_get_password (PraghaPreferences *preferences)
 {
-	return pragha_preferences_get_string (preferences,
-	                                      GROUP_SERVICES,
-	                                      KEY_LASTFM_PASS);
+	gchar *plugin_group = NULL, *string = NULL;
+	plugin_group = pragha_preferences_get_plugin_group_name (preferences, "lastfm");
+
+	string = pragha_preferences_get_string (preferences,
+	                                        plugin_group,
+	                                        KEY_LASTFM_PASS);
+
+	g_free (plugin_group);
+
+	return string;
 }
 
 static void
 pragha_lastfm_plugin_set_user (PraghaPreferences *preferences, const gchar *user)
 {
+	gchar *plugin_group = NULL;
+	plugin_group = pragha_preferences_get_plugin_group_name (preferences, "lastfm");
+
 	if (string_is_not_empty(user))
 		pragha_preferences_set_string (preferences,
-		                               GROUP_SERVICES,
+		                               plugin_group,
 		                               KEY_LASTFM_USER,
 		                               user);
 	else
  		pragha_preferences_remove_key (preferences,
-		                               GROUP_SERVICES,
+		                               plugin_group,
 		                               KEY_LASTFM_USER);
+
+	g_free (plugin_group);
 }
 
 static gchar *
 pragha_lastfm_plugin_get_user (PraghaPreferences *preferences)
 {
-	return pragha_preferences_get_string (preferences,
-	                                      GROUP_SERVICES,
-	                                      KEY_LASTFM_USER);
+	gchar *plugin_group = NULL, *string = NULL;
+	plugin_group = pragha_preferences_get_plugin_group_name (preferences, "lastfm");
+
+	string = pragha_preferences_get_string (preferences,
+	                                        plugin_group,
+	                                        KEY_LASTFM_USER);
+
+	g_free (plugin_group);
+
+	return string;
 }
 
 static void
 pragha_lastfm_plugin_set_scrobble_support (PraghaPreferences *preferences, gboolean supported)
 {
+	gchar *plugin_group = NULL;
+	plugin_group = pragha_preferences_get_plugin_group_name (preferences, "lastfm");
+
 	pragha_preferences_set_boolean (preferences,
-		                            GROUP_SERVICES,
-		                            KEY_LASTFM,
+		                            plugin_group,
+		                            KEY_LASTFM_SCROBBLE,
 		                            supported);
+
+	g_free (plugin_group);
 }
 
 static gboolean
 pragha_lastfm_plugin_get_scrobble_support (PraghaPreferences *preferences)
 {
-	return pragha_preferences_get_boolean (preferences,
-	                                       GROUP_SERVICES,
-	                                       KEY_LASTFM);
+	gchar *plugin_group = NULL;
+	gboolean scrobble = FALSE;
+
+	plugin_group = pragha_preferences_get_plugin_group_name (preferences, "lastfm");
+
+	scrobble = pragha_preferences_get_boolean (preferences,
+	                                           plugin_group,
+	                                           KEY_LASTFM_SCROBBLE);
+
+	g_free (plugin_group);
+
+	return scrobble;
 }
 
 
@@ -301,6 +395,7 @@ pragha_lastfm_update_menu_actions (PraghaLastfmPlugin *plugin)
 {
 	PraghaBackend *backend;
 	PraghaBackendState state = 0;
+	GtkWindow *window;
 
 	PraghaLastfmPluginPrivate *priv = plugin->priv;
 
@@ -320,6 +415,12 @@ pragha_lastfm_update_menu_actions (PraghaLastfmPlugin *plugin)
 	pragha_action_group_set_sensitive (priv->action_group_playlist, "Love track", logged);
 	pragha_action_group_set_sensitive (priv->action_group_playlist, "Unlove track", logged);
 	pragha_action_group_set_sensitive (priv->action_group_playlist, "Add similar", lfm_inited);
+
+	window = GTK_WINDOW(pragha_application_get_window(priv->pragha));
+	pragha_menubar_set_enable_action (window, "lastfm-love", playing && logged);
+	pragha_menubar_set_enable_action (window, "lastfm-unlove", playing && logged);
+	pragha_menubar_set_enable_action (window, "lastfm-favorities", has_user);
+	pragha_menubar_set_enable_action (window, "lastfm-similar", playing && lfm_inited);
 }
 
 /*
@@ -328,7 +429,6 @@ pragha_lastfm_update_menu_actions (PraghaLastfmPlugin *plugin)
 static void pragha_lastfm_no_connection_advice (void)
 {
 	PraghaStatusbar *statusbar = pragha_statusbar_get ();
-
 	pragha_statusbar_set_misc_text (statusbar, _("Unable to establish conection with Last.fm"));
 	g_object_unref (statusbar);
 }
@@ -501,20 +601,45 @@ pragha_lastfm_tags_corrected_dialog (GtkButton *button, PraghaLastfmPlugin *plug
 	gtk_widget_show (dialog);
 }
 
+void
+pragha_lastfm_set_tiny_button (GtkWidget *button)
+{
+	GtkCssProvider *provider;
+	provider = gtk_css_provider_new ();
+	gtk_css_provider_load_from_data (provider,
+	                                 "#tiny-button {\n"
+	                                 " -GtkButton-default-border : 0px;\n"
+	                                 " -GtkButton-default-outside-border : 0px;\n"
+	                                 " -GtkButton-inner-border: 0px;\n"
+	                                 " -GtkWidget-focus-line-width: 0px;\n"
+	                                 " -GtkWidget-focus-padding: 0px;\n"
+	                                 " padding: 1px;}",
+	                                 -1, NULL);
+	gtk_style_context_add_provider (gtk_widget_get_style_context (button),
+	                                GTK_STYLE_PROVIDER (provider),
+	                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	gtk_widget_set_name (button, "tiny-button");
+	g_object_unref (provider);
+}
+
 static GtkWidget*
 pragha_lastfm_tag_suggestion_button_new (PraghaLastfmPlugin *plugin)
 {
-	GtkWidget* ntag_lastfm_button;
-
+	GtkWidget* ntag_lastfm_button, *image;
 	ntag_lastfm_button = gtk_button_new();
 	gtk_button_set_relief(GTK_BUTTON(ntag_lastfm_button), GTK_RELIEF_NONE);
-	gtk_button_set_image(GTK_BUTTON(ntag_lastfm_button),
-                         gtk_image_new_from_icon_name("tools-check-spelling", GTK_ICON_SIZE_MENU));
+
+	image = gtk_image_new_from_icon_name ("tools-check-spelling", GTK_ICON_SIZE_MENU);
+	gtk_button_set_image(GTK_BUTTON(ntag_lastfm_button), image);
+
 	gtk_widget_set_tooltip_text(GTK_WIDGET(ntag_lastfm_button),
 	                            _("Last.fm suggested a tag correction"));
 
 	g_signal_connect(G_OBJECT(ntag_lastfm_button), "clicked",
 	                 G_CALLBACK(pragha_lastfm_tags_corrected_dialog), plugin);
+
+	pragha_lastfm_set_tiny_button (ntag_lastfm_button);
+	gtk_image_set_pixel_size (GTK_IMAGE(image), 12);
 
 	return ntag_lastfm_button;
 }
@@ -662,14 +787,14 @@ append_mobj_list_current_playlist_idle(gpointer user_data)
 				summary = g_strdup_printf(_("Added %d tracks of %d suggested from Last.fm"),
 				                          songs_added, data->query_count);
 			else
-				summary = g_strdup_printf(_("Last.fm doesn´t suggest any similar track"));
+				summary = g_strdup_printf(_("Last.fm doesn't suggest any similar track"));
 			break;
 		case LASTFM_GET_LOVED:
 			if (data->query_count > 0)
 				summary = g_strdup_printf(_("Added %d songs of the last %d loved on Last.fm."),
 							  songs_added, data->query_count);
 			else
-				summary = g_strdup_printf(_("You don´t have favorite tracks on Last.fm"));
+				summary = g_strdup_printf(_("You don't have favorite tracks on Last.fm"));
 			break;
 		case LASTFM_NONE:
 		default:
@@ -1054,6 +1179,54 @@ lastfm_track_unlove_action (GtkAction *action, PraghaLastfmPlugin *plugin)
 	                     pragha_lastfm_async_data_new (plugin));
 }
 
+/*
+ * Gear menu actions.
+ */
+
+static void
+pragha_gmenu_lastfm_add_favorites_action (GSimpleAction *action,
+                                          GVariant      *parameter,
+                                          gpointer       user_data)
+{
+	lastfm_add_favorites_action (NULL, PRAGHA_LASTFM_PLUGIN(user_data));
+}
+
+static void
+pragha_gmenu_lastfm_get_similar_action (GSimpleAction *action,
+                                        GVariant      *parameter,
+                                        gpointer       user_data)
+{
+	lastfm_get_similar_action (NULL, PRAGHA_LASTFM_PLUGIN(user_data));
+}
+
+static void
+pragha_gmenu_lastfm_import_xspf_action (GSimpleAction *action,
+                                        GVariant      *parameter,
+                                        gpointer       user_data)
+{
+	lastfm_import_xspf_action (NULL, PRAGHA_LASTFM_PLUGIN(user_data));
+}
+
+static void
+pragha_gmenu_lastfm_track_love_action (GSimpleAction *action,
+                                       GVariant      *parameter,
+                                       gpointer       user_data)
+{
+	lastfm_track_love_action (NULL, PRAGHA_LASTFM_PLUGIN(user_data));
+}
+
+static void
+pragha_gmenu_lastfm_track_unlove_action (GSimpleAction *action,
+                                         GVariant      *parameter,
+                                         gpointer       user_data)
+{
+	lastfm_track_unlove_action (NULL, PRAGHA_LASTFM_PLUGIN(user_data));
+}
+
+/*
+ * Handlers
+ */
+
 static gpointer
 pragha_lastfm_scrobble_thread (gpointer data)
 {
@@ -1182,7 +1355,8 @@ pragha_lastfm_now_playing_thread (gpointer data)
 
 		if (changed) {
 			g_mutex_lock (&priv->data_mutex);
-			g_object_unref (priv->updated_mobj);
+			if (priv->updated_mobj)
+				g_object_unref (priv->updated_mobj);
 			priv->updated_mobj = pragha_musicobject_dup (priv->current_mobj);
 			if (changed & TAG_TITLE_CHANGED)
 				pragha_musicobject_set_title (priv->updated_mobj, ntrack->name);
@@ -1346,9 +1520,14 @@ static void
 pragha_menubar_append_lastfm (PraghaLastfmPlugin *plugin)
 {
 	PraghaPlaylist *playlist;
+	GtkWindow *window;
+	GActionMap *map;
 
 	PraghaLastfmPluginPrivate *priv = plugin->priv;
 
+	/*
+	 * Menubar
+	 */
 	priv->action_group_main_menu = gtk_action_group_new ("PraghaLastfmMainMenuActions");
 	gtk_action_group_set_translation_domain (priv->action_group_main_menu, GETTEXT_PACKAGE);
 	gtk_action_group_add_actions (priv->action_group_main_menu,
@@ -1365,6 +1544,9 @@ pragha_menubar_append_lastfm (PraghaLastfmPlugin *plugin)
 	pragha_action_group_set_sensitive (priv->action_group_main_menu, "Add favorites", FALSE);
 	pragha_action_group_set_sensitive (priv->action_group_main_menu, "Add similar", FALSE);
 
+	/*
+	 * Playlist
+	 */
 	priv->action_group_playlist = gtk_action_group_new ("PraghaLastfmPlaylistActions");
 	gtk_action_group_set_translation_domain (priv->action_group_playlist, GETTEXT_PACKAGE);
 	gtk_action_group_add_actions (priv->action_group_playlist,
@@ -1376,6 +1558,26 @@ pragha_menubar_append_lastfm (PraghaLastfmPlugin *plugin)
 	priv->merge_id_playlist = pragha_playlist_append_plugin_action (playlist,
 	                                                                priv->action_group_playlist,
 	                                                                playlist_xml);
+
+	/*
+	 * Gear Menu
+	 */
+	pragha_menubar_append_submenu (priv->pragha, "pragha-plugins-placeholder",
+	                               lastfm_menu_ui,
+	                               "lastfm-sudmenu",
+	                               _("_Lastfm"),
+	                               plugin);
+
+	map = G_ACTION_MAP (pragha_application_get_window(priv->pragha));
+	g_action_map_add_action_entries (G_ACTION_MAP (map),
+	                                 lastfm_entries, G_N_ELEMENTS(lastfm_entries),
+	                                 plugin);
+
+	window = GTK_WINDOW(pragha_application_get_window(priv->pragha));
+	pragha_menubar_set_enable_action (window, "lastfm-love", FALSE);
+	pragha_menubar_set_enable_action (window, "lastfm-unlove", FALSE);
+	pragha_menubar_set_enable_action (window, "lastfm-favorities", FALSE);
+	pragha_menubar_set_enable_action (window, "lastfm-similar", FALSE);
 }
 
 static void
@@ -1403,6 +1605,10 @@ pragha_menubar_remove_lastfm (PraghaLastfmPlugin *plugin)
 	                                      priv->merge_id_playlist);
 
 	priv->merge_id_playlist = 0;
+
+	pragha_menubar_remove_by_id (priv->pragha,
+	                             "pragha-plugins-placeholder",
+	                             "lastfm-sudmenu");
 }
 
 static gboolean
@@ -1480,23 +1686,31 @@ pragha_lastfm_preferences_dialog_response (GtkDialog    *dialog,
                                            PraghaLastfmPlugin *plugin)
 {
 	PraghaPreferences *preferences;
-	const gchar *test_user = NULL, *entry_user = NULL, *test_pass = NULL, *entry_pass = NULL;
+	const gchar *entry_user = NULL, *entry_pass = NULL;
+	gchar *test_user = NULL, *test_pass = NULL;
 	gboolean changed = FALSE, test_scrobble = FALSE, toggle_scrobble = FALSE;
 
 	PraghaLastfmPluginPrivate *priv = plugin->priv;
 
+	preferences = pragha_preferences_get ();
+
+	test_user = pragha_lastfm_plugin_get_user (preferences);
+	test_pass = pragha_lastfm_plugin_get_password (preferences);
+
 	switch(response_id) {
 	case GTK_RESPONSE_CANCEL:
+		gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(priv->enable_w),
+			pragha_lastfm_plugin_get_scrobble_support (preferences));
+
+		pragha_gtk_entry_set_text (GTK_ENTRY(priv->lastfm_uname_w), test_user);
+		pragha_gtk_entry_set_text (GTK_ENTRY(priv->lastfm_pass_w), test_pass);
 		break;
 	case GTK_RESPONSE_OK:
 		toggle_scrobble = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON(priv->enable_w));
 		entry_user = gtk_entry_get_text (GTK_ENTRY(priv->lastfm_uname_w));
 		entry_pass = gtk_entry_get_text (GTK_ENTRY(priv->lastfm_pass_w));
 
-		preferences = pragha_preferences_get ();
 		test_scrobble = pragha_lastfm_plugin_get_scrobble_support (preferences);
-		test_user = pragha_lastfm_plugin_get_user (preferences);
-		test_pass = pragha_lastfm_plugin_get_password (preferences);
 
 		if (test_scrobble != toggle_scrobble) {
 			pragha_lastfm_plugin_set_scrobble_support (preferences, toggle_scrobble);
@@ -1517,11 +1731,13 @@ pragha_lastfm_preferences_dialog_response (GtkDialog    *dialog,
 			pragha_lastfm_disconnect (plugin);
 			pragha_lastfm_connect (plugin);
 		}
-		g_object_unref (preferences);
 		break;
 	default:
 		break;
 	}
+	g_object_unref (preferences);
+	g_free (test_user);
+	g_free (test_pass);
 }
 
 static void
@@ -1664,8 +1880,8 @@ pragha_plugin_activate (PeasActivatable *activatable)
 	priv->status = LASTFM_STATUS_INVALID;
 
 	g_mutex_init (&priv->data_mutex);
-	priv->updated_mobj = pragha_musicobject_new ();
-	priv->current_mobj = pragha_musicobject_new ();
+	priv->updated_mobj = NULL;
+	priv->current_mobj = NULL;
 
 	priv->ntag_lastfm_button = NULL;
 
@@ -1699,17 +1915,28 @@ pragha_plugin_activate (PeasActivatable *activatable)
 static void
 pragha_plugin_deactivate (PeasActivatable *activatable)
 {
+	PraghaPreferences *preferences;
 	PraghaLastfmPlugin *plugin = PRAGHA_LASTFM_PLUGIN (activatable);
 	PraghaLastfmPluginPrivate *priv = plugin->priv;
+	gchar *plugin_group = NULL;
 
 	CDEBUG(DBG_PLUGIN, "Lastfm plugin %s", G_STRFUNC);
 
 	/* Disconnect playback signals */
 
 	g_signal_handlers_disconnect_by_func (pragha_application_get_backend (priv->pragha),
-	                                      backend_changed_state_cb, priv->pragha);
+	                                      backend_changed_state_cb, plugin);
 
 	pragha_lastfm_disconnect (plugin);
+
+	/* Settings */
+
+	preferences = pragha_application_get_preferences (priv->pragha);
+	plugin_group = pragha_preferences_get_plugin_group_name (preferences, "lastfm");
+	if (!pragha_plugins_is_shutdown(pragha_application_get_plugins_engine(priv->pragha))) {
+		pragha_preferences_remove_group (preferences, plugin_group);
+	}
+	g_free (plugin_group);
 
 	/* Remove menu and settings */
 
@@ -1718,7 +1945,9 @@ pragha_plugin_deactivate (PeasActivatable *activatable)
 
 	/* Clean */
 
-	g_object_unref (priv->updated_mobj);
-	g_object_unref (priv->current_mobj);
+	if (priv->updated_mobj)
+		g_object_unref (priv->updated_mobj);
+	if (priv->current_mobj)
+		g_object_unref (priv->current_mobj);
 	g_mutex_clear (&priv->data_mutex);
 }
