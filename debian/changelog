@@ -1,3 +1,18 @@
+pragha (1.3.3~git20150729-1) unstable; urgency=medium
+
+  [ Matias De lellis ]
+  * Don't use icons on menu..
+  * Expand widgets if added as wide control.
+  * Add option to use small icons on tool/headerbar.
+  * Change "Use Gnome 3 HIG" option to "Use system title bar and borders"
+  * Update translations from transifex.
+  * Add all songs of internet playlist. Issue #81
+  * Rework the interface of equalizer and adds the preamplifier.
+  * Fixes undefined symbols of devices plugin..
+  * Use uri instead filename to save playlist with TotemPlPlarser.
+
+ -- Eugenio Paolantonio (g7) <me@medesimo.eu>  Fri, 14 Aug 2015 19:03:48 +0200
+
 pragha (1.3.2.2+git20150607-1) unstable; urgency=medium
 
   [ Matias De lellis ]
