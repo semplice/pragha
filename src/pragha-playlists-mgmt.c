@@ -248,11 +248,6 @@ exit_list:
 }
 
 #ifdef HAVE_PLPARSER
-typedef struct {
-	TotemPlPlaylist *playlist;
-	gchar           *folder_saved;
-} PraghaPlParser;
-
 static void
 pragha_parser_append_foreach_playlist (GtkTreeModel *model,
                                        GtkTreePath  *path,
@@ -262,29 +257,24 @@ pragha_parser_append_foreach_playlist (GtkTreeModel *model,
 	TotemPlPlaylistIter pl_iter;
 	PraghaMusicobject *mobj;
 	const gchar *filename;
-	gchar *base_uri = NULL, *uri = NULL;
+	gchar *uri = NULL;
 
-	PraghaPlParser *parser = data;
+	TotemPlPlaylist *playlist = data;
 
 	gtk_tree_model_get (model, iter, P_MOBJ_PTR, &mobj, -1);
 
 	filename = pragha_musicobject_get_file(mobj);
-	base_uri = get_display_filename(filename, TRUE);
 
-	if (g_ascii_strcasecmp(base_uri, parser->folder_saved) == 0)
-		uri = get_display_filename(filename, FALSE);
-	else
-		uri = g_strdup(filename);
+	uri = g_filename_to_uri (filename, NULL, NULL);
 
-	totem_pl_playlist_append (parser->playlist, &pl_iter);
-	totem_pl_playlist_set (parser->playlist, &pl_iter,
+	totem_pl_playlist_append (playlist, &pl_iter);
+	totem_pl_playlist_set (playlist, &pl_iter,
 	                       TOTEM_PL_PARSER_FIELD_URI, uri,
 	                       NULL);
 
 	g_free(uri);
-	g_free(base_uri);
 }
- 
+
 static gboolean
 pragha_parser_append_foreach_track_list (GtkTreeModel *model,
                                          GtkTreePath  *path,
@@ -299,9 +289,9 @@ pragha_parser_append_foreach_track_list (GtkTreeModel *model,
 }
 
 static gboolean
-pragha_parser_save_full_track_list(PraghaPlaylist *cplaylist, gchar *filename)
+pragha_parser_save_full_track_list (PraghaPlaylist *cplaylist,
+                                    const gchar    *filename)
 {
-	PraghaPlParser *parser;
 	TotemPlPlaylist *playlist;
 	TotemPlParser *pl;
 	GFile *file;
@@ -311,21 +301,15 @@ pragha_parser_save_full_track_list(PraghaPlaylist *cplaylist, gchar *filename)
 	playlist = totem_pl_playlist_new ();
 	file = g_file_new_for_path (filename);
 
-	parser = g_slice_new (PraghaPlParser);
-	parser->playlist = playlist;
-	parser->folder_saved = get_display_filename(filename, TRUE);
-
 	gtk_tree_model_foreach(pragha_playlist_get_model(cplaylist),
 	                       pragha_parser_append_foreach_track_list,
-	                       parser);
+	                       playlist);
+
 
 	if (totem_pl_parser_save (pl, playlist, file, "Title", TOTEM_PL_PARSER_M3U, NULL) != TRUE) {
-        g_error ("Playlist writing failed.");
-        ret = FALSE;
+		g_error ("Playlist writing failed.");
+		ret = FALSE;
     }
-
-	g_free(parser->folder_saved);
-	g_slice_free (PraghaPlParser, parser);
 
 	g_object_unref (playlist);
 	g_object_unref (pl);
@@ -335,9 +319,9 @@ pragha_parser_save_full_track_list(PraghaPlaylist *cplaylist, gchar *filename)
 }
 
 static gboolean
-pragha_parser_save_selection_track_list(PraghaPlaylist *cplaylist, gchar *filename)
+pragha_parser_save_selection_track_list (PraghaPlaylist *cplaylist,
+                                         const gchar    *filename)
 {
-	PraghaPlParser *parser;
 	TotemPlPlaylist *playlist;
 	TotemPlParser *pl;
 	GtkTreeSelection *selection;
@@ -348,22 +332,15 @@ pragha_parser_save_selection_track_list(PraghaPlaylist *cplaylist, gchar *filena
 	playlist = totem_pl_playlist_new ();
 	file = g_file_new_for_path (filename);
 
-	parser = g_slice_new (PraghaPlParser);
-	parser->playlist = playlist;
-	parser->folder_saved = get_display_filename(filename, TRUE);
-
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(pragha_playlist_get_view(cplaylist)));
 	gtk_tree_selection_selected_foreach(selection,
 	                                    pragha_parser_append_foreach_playlist,
-	                                    parser);
+	                                    playlist);
 
 	if (totem_pl_parser_save (pl, playlist, file, "Title", TOTEM_PL_PARSER_M3U, NULL) != TRUE) {
         g_error ("Playlist writing failed.");
         ret = FALSE;
     }
-
-	g_free(parser->folder_saved);
-	g_slice_free (PraghaPlParser, parser);
 
 	g_object_unref (playlist);
 	g_object_unref (pl);
@@ -711,8 +688,11 @@ exit:
 #endif
 
 #ifdef HAVE_PLPARSER
-static void _on_pl_entry_parsed(TotemPlParser *parser, gchar *uri,
-				gpointer metadata, GSList **plitems)
+static void
+_on_pl_entry_parsed (TotemPlParser *parser,
+                     gchar         *uri,
+                     gpointer       metadata,
+                     GSList       **plitems)
 {
 	gchar *filename = NULL;
 
@@ -730,7 +710,7 @@ static void _on_pl_entry_parsed(TotemPlParser *parser, gchar *uri,
 GSList *
 pragha_totem_pl_parser_parse_from_uri (const gchar *uri)
 {
-	static TotemPlParser *pl_parser = NULL;
+	TotemPlParser *pl_parser = NULL;
 	GSList *plitems = NULL;
 	gchar *base;
 
@@ -741,15 +721,21 @@ pragha_totem_pl_parser_parse_from_uri (const gchar *uri)
 
 	base = get_display_filename(uri, TRUE);
 
-	if (totem_pl_parser_parse_with_base(pl_parser, uri, base, FALSE)
-	    != TOTEM_PL_PARSER_RESULT_SUCCESS) {
-		/* An error happens while parsing */
-		goto bad;
+	switch (totem_pl_parser_parse_with_base(pl_parser, uri, base, FALSE)) {
+		case TOTEM_PL_PARSER_RESULT_UNHANDLED:
+		case TOTEM_PL_PARSER_RESULT_IGNORED:
+			/* maybe it's the actual stream URL, then */
+			plitems = g_slist_append(plitems, g_strdup(uri));
+			break;
+		case TOTEM_PL_PARSER_RESULT_ERROR:
+			g_warning ("An error happens while parsing %s", uri);
+			break;
+		case TOTEM_PL_PARSER_RESULT_SUCCESS:
+		default:
+			break;
 	}
-
 	g_object_unref (pl_parser);
 
-bad:
 	g_free(base);
 
 	return plitems;
@@ -1185,25 +1171,40 @@ void append_playlist(PraghaPlaylist* cplaylist, const gchar *playlist, PraghaPla
 	save_playlist(cplaylist, playlist_id, type);
 }
 
-void new_radio (PraghaPlaylist* cplaylist, const gchar *uri, const gchar *name)
+gchar *
+new_radio (PraghaPlaylist *playlist,
+           const gchar    *uri,
+           const gchar    *basename)
 {
-	gint radio_id = 0;
+	PraghaDatabase *cdbase;
+	gchar *name = NULL;
+	gint radio_id = 0, i = 0;
 
-	if (string_is_empty(name)) {
+	if (string_is_empty(basename)) {
 		g_warning("Radio name is NULL");
-		return;
+		return NULL;
 	}
 
-	if ((radio_id = pragha_database_find_radio (pragha_playlist_get_database(cplaylist), name))) {
-		if (overwrite_existing_playlist(name, gtk_widget_get_toplevel(GTK_WIDGET(cplaylist))))
-			pragha_database_delete_radio (pragha_playlist_get_database(cplaylist), name);
-		else
-			return;
+	cdbase = pragha_playlist_get_database(playlist);
+
+	if (!pragha_database_find_radio (cdbase, basename)) {
+		name = g_strdup (basename);
+	}
+	else {
+		/* Get a new name */
+		do {
+			if (name)
+				g_free (name);
+			name = g_strdup_printf ("%s %i", basename, ++i);
+		} while (pragha_database_find_radio (cdbase, name));
 	}
 
-	radio_id = pragha_database_add_new_radio (pragha_playlist_get_database(cplaylist), name);
+  	/* Save a new radio */
 
-	pragha_database_add_radio_track (pragha_playlist_get_database(cplaylist), radio_id, uri);
+  	radio_id = pragha_database_add_new_radio (cdbase, name);
+	pragha_database_add_radio_track (cdbase, radio_id, uri);
+
+	return name;
 }
 
 PraghaPlaylistAction
@@ -1330,12 +1331,10 @@ update_playlist_changes_save_selection_popup_playlist (PraghaPlaylist *cplaylist
 	gtk_menu_item_set_submenu (GTK_MENU_ITEM (gtk_ui_manager_get_widget (pragha_playlist_get_context_menu(cplaylist), "/SelectionPopup/Save selection")), submenu);
 
 	menuitem = gtk_image_menu_item_new_with_label (_("New playlist"));
-	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM(menuitem), gtk_image_new_from_icon_name("document-new", GTK_ICON_SIZE_MENU));
 	g_signal_connect(menuitem, "activate", G_CALLBACK(save_selected_playlist), cplaylist);
 	gtk_menu_shell_append (GTK_MENU_SHELL(submenu), menuitem);
 
 	menuitem = gtk_image_menu_item_new_with_label (_("Export"));
-	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM(menuitem), gtk_image_new_from_icon_name("media-floppy", GTK_ICON_SIZE_MENU));
 	g_signal_connect(menuitem, "activate", G_CALLBACK(export_selected_playlist), cplaylist);
 	gtk_menu_shell_append (GTK_MENU_SHELL(submenu), menuitem);
 
@@ -1368,12 +1367,10 @@ update_playlist_changes_save_playlist_popup_playlist (PraghaPlaylist *cplaylist)
 	gtk_menu_item_set_submenu (GTK_MENU_ITEM (gtk_ui_manager_get_widget (pragha_playlist_get_context_menu(cplaylist), "/SelectionPopup/Save playlist")), submenu);
 
 	menuitem = gtk_image_menu_item_new_with_label (_("New playlist"));
-	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM(menuitem), gtk_image_new_from_icon_name("document-new", GTK_ICON_SIZE_MENU));
 	g_signal_connect(menuitem, "activate", G_CALLBACK(save_current_playlist), cplaylist);
 	gtk_menu_shell_append (GTK_MENU_SHELL(submenu), menuitem);
 
 	menuitem = gtk_image_menu_item_new_with_label (_("Export"));
-	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM(menuitem), gtk_image_new_from_icon_name("media-floppy", GTK_ICON_SIZE_MENU));
 	g_signal_connect(menuitem, "activate", G_CALLBACK(export_current_playlist), cplaylist);
 	gtk_menu_shell_append (GTK_MENU_SHELL(submenu), menuitem);
 

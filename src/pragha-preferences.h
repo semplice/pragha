@@ -18,6 +18,7 @@
 #ifndef PRAGHA_PREFERENCES_H
 #define PRAGHA_PREFERENCES_H
 
+#include <gtk/gtk.h>
 #include <glib-object.h>
 
 G_BEGIN_DECLS
@@ -99,8 +100,9 @@ struct _PraghaPreferencesClass
 #define KEY_SECONDARY_SIDEBAR_SIZE "secondary_sidebar_size"
 #define KEY_SHOW_ALBUM_ART         "show_album_art"
 #define KEY_ALBUM_ART_SIZE         "album_art_size"
+#define KEY_TOOLBAR_SIZE           "toolbar_icon_size"
 #define KEY_STATUS_BAR             "status_bar"
-#define KEY_GNOME_STYLE            "gnome_style"
+#define KEY_SYSTEM_TITLEBAR        "system_titlebar"
 #define KEY_CONTROLS_BELOW         "controls_below"
 #define KEY_SHOW_MENUBAR           "show_menubar"
 
@@ -362,6 +364,13 @@ void
 pragha_preferences_set_album_art_pattern (PraghaPreferences *preferences,
                                           const gchar *album_art_pattern);
 
+GtkIconSize
+pragha_preferences_get_toolbar_size (PraghaPreferences *preferences);
+
+void
+pragha_preferences_set_toolbar_size (PraghaPreferences *preferences,
+                                     GtkIconSize        toolbar_size);
+
 gboolean
 pragha_preferences_get_show_status_bar (PraghaPreferences *preferences);
 
@@ -384,11 +393,11 @@ pragha_preferences_set_show_menubar (PraghaPreferences *preferences,
                                      gboolean           show_menubar);
 
 gboolean
-pragha_preferences_get_gnome_style (PraghaPreferences *preferences);
+pragha_preferences_get_system_titlebar (PraghaPreferences *preferences);
 
 void
-pragha_preferences_set_gnome_style (PraghaPreferences *preferences,
-                                    gboolean           gnome_style);
+pragha_preferences_set_system_titlebar (PraghaPreferences *preferences,
+                                        gboolean           system_titlebar);
 
 gboolean
 pragha_preferences_get_controls_below (PraghaPreferences *preferences);

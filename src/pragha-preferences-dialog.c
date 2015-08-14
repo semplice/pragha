@@ -63,8 +63,9 @@ struct _PreferencesDialog {
 	GtkWidget *soft_mixer_w;
 #endif
 #if GTK_CHECK_VERSION (3, 12, 0)
-	GtkWidget *gnome_style_w;
+	GtkWidget *system_titlebar_w;
 #endif
+	GtkWidget *small_toolbar_w;
 	GtkWidget *use_hint_w;
 	GtkWidget *album_art_w;
 	GtkWidget *album_art_size_w;
@@ -336,9 +337,15 @@ pragha_preferences_dialog_restore_changes (PreferencesDialog *dialog)
 	 * Apareanse settings
 	 */
 #if GTK_CHECK_VERSION (3, 12, 0)
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(dialog->gnome_style_w),
-		pragha_preferences_get_gnome_style(dialog->preferences));
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(dialog->system_titlebar_w),
+		pragha_preferences_get_system_titlebar(dialog->preferences));
 #endif
+
+	if (pragha_preferences_get_toolbar_size(dialog->preferences) == GTK_ICON_SIZE_SMALL_TOOLBAR)
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(dialog->small_toolbar_w), TRUE);
+	else
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(dialog->small_toolbar_w), FALSE);
+
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(dialog->use_hint_w),
 		pragha_preferences_get_use_hint(dialog->preferences));
 
@@ -403,8 +410,9 @@ pragha_preferences_dialog_accept_changes (PreferencesDialog *dialog)
 	gboolean show_album_art, instant_search, approximate_search, restore_playlist, add_recursively, use_hint;
 	gboolean test_change, pref_setted, pref_toggled, library_locked;
 #if GTK_CHECK_VERSION (3, 12, 0)
-	gboolean gnome_style;
+	gboolean system_titlebar;
 #endif
+	gboolean small_toolbar;
 	gint album_art_size;
 	PraghaLibraryStyle style;
 
@@ -580,12 +588,17 @@ pragha_preferences_dialog_accept_changes (PreferencesDialog *dialog)
 		}
 	}
 #if GTK_CHECK_VERSION (3, 12, 0)
-	gnome_style = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(dialog->gnome_style_w));
-	if (gnome_style != pragha_preferences_get_gnome_style(dialog->preferences)) {
-		pragha_preferences_set_gnome_style (dialog->preferences, gnome_style);
-		pragha_preferences_set_show_menubar (dialog->preferences, !gnome_style);
+	system_titlebar = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(dialog->system_titlebar_w));
+	if (system_titlebar != pragha_preferences_get_system_titlebar(dialog->preferences)) {
+		pragha_preferences_set_system_titlebar (dialog->preferences, system_titlebar);
+		pragha_preferences_set_show_menubar (dialog->preferences, system_titlebar);
 	}
 #endif
+	small_toolbar = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(dialog->small_toolbar_w));
+	if (small_toolbar)
+		pragha_preferences_set_toolbar_size (dialog->preferences, GTK_ICON_SIZE_SMALL_TOOLBAR);
+	else
+		pragha_preferences_set_toolbar_size (dialog->preferences, GTK_ICON_SIZE_LARGE_TOOLBAR);
 }
 
 /* Handler for the preferences dialog */
@@ -1039,9 +1052,9 @@ pref_create_appearance_page(PreferencesDialog *dialog)
 {
 	GtkWidget *table;
 #if GTK_CHECK_VERSION (3, 12, 0)
-	GtkWidget *gnome_style;
+	GtkWidget *system_titlebar;
 #endif
-	GtkWidget *use_hint, *album_art;
+	GtkWidget *use_hint, *album_art, *small_toolbar;
 	GtkWidget *album_art_pattern_label, *album_art_size, *album_art_size_label, *album_art_pattern;
 	guint row = 0;
 
@@ -1050,12 +1063,15 @@ pref_create_appearance_page(PreferencesDialog *dialog)
 #if GTK_CHECK_VERSION (3, 12, 0)
 	pragha_hig_workarea_table_add_section_title(table, &row, _("Appearance"));
 
-	gnome_style = gtk_check_button_new_with_label(_("Use Gnome 3 HIG"));
-	pragha_hig_workarea_table_add_wide_control(table, &row, gnome_style);
+	system_titlebar = gtk_check_button_new_with_label(_("Use system title bar and borders"));
+	pragha_hig_workarea_table_add_wide_control(table, &row, system_titlebar);
 
 	if (!gdk_screen_is_composited (gdk_screen_get_default()))
-		gtk_widget_set_sensitive (gnome_style, FALSE);
+		gtk_widget_set_sensitive (system_titlebar, FALSE);
 #endif
+
+	small_toolbar = gtk_check_button_new_with_label(_("Use small icons on the toolbars"));
+	pragha_hig_workarea_table_add_wide_control(table, &row, small_toolbar);
 
 	pragha_hig_workarea_table_add_section_title(table, &row, _("Playlist"));
 
@@ -1084,8 +1100,9 @@ pref_create_appearance_page(PreferencesDialog *dialog)
 
 	/* Store references */
 #if GTK_CHECK_VERSION (3, 12, 0)
-	dialog->gnome_style_w = gnome_style;
+	dialog->system_titlebar_w = system_titlebar;
 #endif
+	dialog->small_toolbar_w = small_toolbar;
 	dialog->use_hint_w = use_hint;
 	dialog->album_art_w = album_art;
 	dialog->album_art_size_w = album_art_size;
@@ -1094,9 +1111,11 @@ pref_create_appearance_page(PreferencesDialog *dialog)
 	/* Setup signal handlers */
 
 #if GTK_CHECK_VERSION (3, 12, 0)
-	if (pragha_preferences_get_gnome_style(dialog->preferences))
-		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(dialog->gnome_style_w), TRUE);
+	if (pragha_preferences_get_system_titlebar(dialog->preferences))
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(dialog->system_titlebar_w), TRUE);
 #endif
+	if (pragha_preferences_get_toolbar_size(dialog->preferences) == GTK_ICON_SIZE_SMALL_TOOLBAR)
+		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(dialog->small_toolbar_w), TRUE);
 
 	g_signal_connect(G_OBJECT(album_art), "toggled",
 			 G_CALLBACK(toggle_album_art), dialog);

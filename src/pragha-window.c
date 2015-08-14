@@ -408,6 +408,27 @@ pragha_window_init (PraghaApplication *pragha)
 	pragha_init_session_support(pragha);
 }
 
+static void
+prefrences_change_icon_size (PraghaPreferences *preferences,
+                             GParamSpec        *pspec,
+                             GtkWidget         *button)
+{
+	GIcon *icon = NULL;
+
+  	const gchar *fallbacks_icon_menu[] = {
+		"open-menu-symbolic",
+		"emblem-system-symbolic",
+		"open-menu",
+		"emblem-system",
+		NULL,
+	};
+
+  	icon = g_themed_icon_new_from_names ((gchar **)fallbacks_icon_menu, -1);
+	gtk_button_set_image (GTK_BUTTON (button),
+		gtk_image_new_from_gicon(icon, pragha_preferences_get_toolbar_size(preferences)));
+	g_object_unref (icon);
+}
+
 void
 pragha_window_new (PraghaApplication *pragha)
 {
@@ -538,7 +559,7 @@ pragha_window_new (PraghaApplication *pragha)
 	gtk_box_pack_start (GTK_BOX(vbox_main), menubar,
 	                    FALSE, FALSE, 0);
 #if GTK_CHECK_VERSION (3, 12, 0)
-	if (pragha_preferences_get_gnome_style (preferences) == FALSE)
+	if (pragha_preferences_get_system_titlebar (preferences))
 #endif
 		gtk_box_pack_start (GTK_BOX(vbox_main), GTK_WIDGET(toolbar),
 		                    FALSE, FALSE, 0);
@@ -561,7 +582,7 @@ pragha_window_new (PraghaApplication *pragha)
 
 	icon = g_themed_icon_new_from_names ((gchar **)fallbacks_icon_menu, -1);
 	gtk_button_set_image (GTK_BUTTON (menu_button),
-		gtk_image_new_from_gicon(icon, GTK_ICON_SIZE_LARGE_TOOLBAR));
+		gtk_image_new_from_gicon(icon, pragha_preferences_get_toolbar_size(preferences)));
 	g_object_unref (icon);
 
 	menu_ui = pragha_application_get_menu_ui(pragha);
@@ -571,6 +592,9 @@ pragha_window_new (PraghaApplication *pragha)
 	g_object_bind_property (preferences, "show-menubar",
 	                        menu_button, "visible",
 	                        binding_flags | G_BINDING_INVERT_BOOLEAN);
+
+	g_signal_connect (preferences, "notify::toolbar-size",
+	                  G_CALLBACK (prefrences_change_icon_size), menu_button);
 
 	pragha_toolbar_add_extra_button (toolbar, menu_button);
 
@@ -608,7 +632,7 @@ pragha_window_new (PraghaApplication *pragha)
 	gtk_container_add(GTK_CONTAINER(window), vbox_main);
 
 #if GTK_CHECK_VERSION (3, 12, 0)
-	if (pragha_preferences_get_gnome_style (preferences))
+	if (!pragha_preferences_get_system_titlebar (preferences))
 		gtk_window_set_titlebar (GTK_WINDOW (window), GTK_WIDGET(toolbar));
 
 	GtkWidget *song = pragha_toolbar_get_song_box(toolbar);
