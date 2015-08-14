@@ -1,3 +1,9 @@
+pragha (1.3.3~git20150729-2) unstable; urgency=medium
+
+  * [packaging] Added git:POTFILES to debian/patches.
+
+ -- Eugenio Paolantonio (g7) <me@medesimo.eu>  Fri, 14 Aug 2015 19:26:38 +0200
+
 pragha (1.3.3~git20150729-1) unstable; urgency=medium
 
   [ Matias De lellis ]
