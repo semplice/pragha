@@ -1,4 +1,4 @@
-pragha (1.3.3~git20150729-3) unstable; urgency=medium
+pragha (1.3.3~git20150729-3~jethro0) jessie; urgency=medium
 
   * [packaging] Build-depend on libtotem-plparser-dev (>= 2.26).
 
